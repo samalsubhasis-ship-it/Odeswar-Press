@@ -62,9 +62,16 @@ def get_all_customers(search_query=""):
             SELECT id, name, email, phone, category, notes FROM customers 
             WHERE name LIKE ? OR email LIKE ? OR phone LIKE ? OR category LIKE ? OR notes LIKE ?
         """
-        like_str = f"%{search_query}%"
+        search_pattern = f"%{search_query}%"
         cursor.execute(
-            query, (like_str, like_str, like_str, like_str, like_str)
+            query,
+            (
+                search_pattern,
+                search_pattern,
+                search_pattern,
+                search_pattern,
+                search_pattern,
+            ),
         )
     else:
         cursor.execute(
@@ -76,106 +83,133 @@ def get_all_customers(search_query=""):
     return rows
 
 
-# Initialize database table on app start
+def delete_customer(customer_id):
+    """Deletes a customer record based on the ID."""
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM customers WHERE id = ?", (customer_id,))
+        conn.commit()
+        conn.close()
+        return True, "Customer successfully deleted!"
+    except Exception as e:
+        return False, f"Error: {str(e)}"
+
+
+# ==========================================
+# 2. STREAMLIT INTERFACE
+# ==========================================
+# Initialize the database on application start
 init_db()
 
-if "success_message" not in st.session_state:
-    st.session_state.success_message = None
+st.set_page_config(page_title="Customer Directory Management", layout="wide")
+st.title("👥 Odeswar Press Customer-DB")
 
-# ==========================================
-# 2. STREAMLIT WEB APP INTERFACE
-# ==========================================
-st.set_page_config(page_title="Customer Database Entry", layout="wide")
+# Creating layout tabs
+tab1, tab2 = st.tabs(["➕ Add New Customer", "🔍 View & Search Directory"])
 
-# Top Header Layout with Service Badge & Clock
-col_title, col_clock = st.columns([2, 1])
-
-with col_title:
-    st.title("👥 Odeswar Press Customer-DB")
-    st.caption("Service Since 2016")
-
-with col_clock:
-    current_time = datetime.now().strftime("%Y-%m-%d | %I:%M:%S %p")
-    st.markdown(
-        f"<div style='text-align: right; padding-top: 20px; font-weight: bold; color: gray;'>🕒 {current_time}</div>",
-        unsafe_allow_html=True,
-    )
-
-st.markdown("Enter customer details below or switch tabs to manage records.")
-
-# Display success message if it exists from a previous form submission
-if st.session_state.success_message:
-    st.success(st.session_state.success_message)
-    st.session_state.success_message = None
-
-# Split the application views cleanly using Tabs
-tab1, tab2 = st.tabs(["📝 Add New Customer", "🗄️ View Database Records"])
-
-# --- TAB 1: ADD NEW CUSTOMER FORM ---
+# --- TAB 1: ADD NEW CUSTOMER ---
 with tab1:
-    st.subheader("New Customer Details")
+    st.header("Register a New Customer")
 
-    with st.form(key="customer_form", clear_on_submit=True):
-        name = st.text_input("Full Name *", placeholder="John Doe")
-        email = st.text_input("Email Address *", placeholder="john@example.com")
-        phone = st.text_input("Phone Number", placeholder="+1 (555) 019-2834")
+    # To create dynamic visibility, we use a standard container instead of st.form
+    # because st.form blocks immediate UI reactivity based on intermediate inputs.
+    with st.container(border=True):
+        col1, col2 = st.columns(2)
 
-        # Customizable Dropdown List
-        category_options = [
-            "Banner",
-            "Photo Fram",
-            "Cup/TShirt/Cap",
-            "ID/Visit Card",
-            "Light Board",
-        ]
-        category = st.selectbox("Sale Item Type", options=category_options)
+        with col1:
+            name = st.text_input("Full Name*", placeholder="John Doe")
+            email = st.text_input("Email Address*", placeholder="john@example.com")
+            phone = st.text_input("Phone Number", placeholder="+1 (555) 019-2834")
 
-        notes = st.text_area(
-            "Internal Notes", placeholder="Additional context..."
-        )
-
-        submit_button = st.form_submit_button(label="Save Customer")
-
-    if submit_button:
-        if not name or not email:
-            st.error("Fields marked with an asterisk (*) are required.")
-        else:
-            success, message = add_customer(name, email, phone, category, notes)
-            if success:
-                st.session_state.success_message = message
-                st.rerun()
+        with col2:
+            # Added "Other" to the Customer Category dropdown selection
+            category_selection = st.selectbox(
+                "Customer Category",
+                ["VIP", "Regular", "Lead", "Inactive", "Other"],
+                index=1,
+            )
+            
+            # Dynamically display manual text input box if "Other" is chosen
+            if category_selection == "Other":
+                final_category = st.text_input("Specify Other Category*", placeholder="Enter manual category type...")
             else:
-                st.error(message)
+                final_category = category_selection
 
-# --- TAB 2: DATABASE VIEW AND SEARCH ---
+            notes = st.text_area(
+                "Internal Account Notes",
+                placeholder="Enter background details, preferences, or transaction history...",
+            )
+
+        submit_btn = st.button("Add Customer", type="primary")
+
+        if submit_btn:
+            if not name or not email:
+                st.error("Please fill out all mandatory fields (*).")
+            elif category_selection == "Other" and not final_category.strip():
+                st.error("Please enter a manual category name.")
+            else:
+                success, message = add_customer(name, email, phone, final_category, notes)
+                if success:
+                    st.success(message)
+                    st.rerun()
+                else:
+                    st.error(message)
+
+# --- TAB 2: VIEW & SEARCH DIRECTORY ---
 with tab2:
-    st.subheader("Database Records")
+    st.header("Search and Explore Records")
 
+    # Search Bar Interface
     search_input = st.text_input(
-        "🔍 Search Customers",
-        placeholder="Type a name, email, category, or keyword and press enter...",
+        "Search records by Name, Email, Phone, Category, or Notes",
+        placeholder="Type to filter...",
     )
 
-    records = get_all_customers(search_input)
+    # Fetch records based on search query
+    customers = get_all_customers(search_input)
 
-    if not records:
-        if search_input:
-            st.warning(f"No records found matching: '{search_input}'")
-        else:
-            st.info("No records found in the database yet.")
+    if not customers:
+        st.info("No matching customer records found.")
     else:
-        formatted_data = [
-            {
-                "ID": row[0],
-                "Name": row[1],
-                "Email": row[2],
-                "Phone": row[3],
-                "Category": row[4],
-                "Notes": row[5],
-            }
-            for row in records
-        ]
+        # Dynamically generate list layout with metrics and delete options
+        for row in customers:
+            c_id, c_name, c_email, c_phone, c_category, c_notes = row
 
-        st.dataframe(formatted_data, use_container_width=True, hide_index=True)
-        st.metric(label="Total Records Displayed", value=len(records))
+            # Design a clean card layout for each entry
+            with st.container(border=True):
+                info_col, action_col = st.columns([4, 1])
 
+                with info_col:
+                    # Category Badge styling support mapping
+                    badge_color = {
+                        "VIP": "🔴 VIP",
+                        "Regular": "🟢 Regular",
+                        "Lead": "🔵 Lead",
+                        "Inactive": "⚪ Inactive",
+                    }.get(c_category, f"🟠 {c_category}") # Fallback to handle custom manual categories nicely
+
+                    st.markdown(f"### {c_name} | {badge_color}")
+
+                    # Detailed contact alignment
+                    det_col1, det_col2 = st.columns(2)
+                    det_col1.markdown(f"**📧 Email:** {c_email}")
+                    det_col2.markdown(f"**📞 Phone:** {c_phone if c_phone else 'N/A'}")
+
+                    if c_notes:
+                        st.markdown(f"**📝 Notes:** {c_notes}")
+
+                with action_col:
+                    # Vertical separation for action elements
+                    st.write("")
+                    st.write("")
+                    # Unique key binding for dynamic delete loops
+                    if st.button(
+                        "Delete Record", key=f"del_{c_id}", type="primary"
+                    ):
+                        success, message = delete_customer(c_id)
+                        if success:
+                            st.success(message)
+                            st.rerun()
+                        else:
+                            st.error(message)
