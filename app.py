@@ -112,8 +112,7 @@ tab1, tab2 = st.tabs(["➕ Add New Customer", "🔍 View & Search Directory"])
 with tab1:
     st.header("Register a New Customer")
 
-    # To create dynamic visibility, we use a standard container instead of st.form
-    # because st.form blocks immediate UI reactivity based on intermediate inputs.
+    # Dynamic visibility container
     with st.container(border=True):
         col1, col2 = st.columns(2)
 
@@ -123,22 +122,21 @@ with tab1:
             phone = st.text_input("Phone Number", placeholder="+1 (555) 019-2834")
 
         with col2:
-           category_selection = st.selectbox(
-              "Customer Category",
-              ["VIP", "Regular", "Lead", "Inactive", "Other"],
-              index=1,
-    )
+            category_selection = st.selectbox(
+                "Customer Category",
+                ["VIP", "Regular", "Lead", "Inactive", "Other"],
+                index=1,
+            )
 
-           item_selection = st.selectbox(
-              "Sales Item",
-              ["Banner", "Cup/Cap/Tshirt", "Photo", "ID-Card", "Other"],
-              index=1,
-    )
+            item_selection = st.selectbox(
+                "Sales Item",
+                ["Banner", "Cup/Cap/Tshirt", "Photo", "ID-Card", "Other"],
+                index=1,
+            )
 
-    # Line 142: Align this perfectly with the code above
-    if category_selection == "Other":
-        custom_category = st.text_input("Please specify customer category:")
-
+            # Clean conditional input logic inside col2
+            if category_selection == "Other":
+                final_category = st.text_input("Please specify customer category:")
             else:
                 final_category = category_selection
 
@@ -152,7 +150,7 @@ with tab1:
         if submit_btn:
             if not name or not email:
                 st.error("Please fill out all mandatory fields (*).")
-            elif category_selection == "Other" and not final_category.strip():
+            elif category_selection == "Other" and (not final_category or not final_category.strip()):
                 st.error("Please enter a manual category name.")
             else:
                 success, message = add_customer(name, email, phone, final_category, notes)
@@ -193,7 +191,7 @@ with tab2:
                         "Regular": "🟢 Regular",
                         "Lead": "🔵 Lead",
                         "Inactive": "⚪ Inactive",
-                    }.get(c_category, f"🟠 {c_category}") # Fallback to handle custom manual categories nicely
+                    }.get(c_category, f"🟠 {c_category}") # Fallback for custom manual categories
 
                     st.markdown(f"### {c_name} | {badge_color}")
 
@@ -206,7 +204,6 @@ with tab2:
                         st.markdown(f"**📝 Notes:** {c_notes}")
 
                 with action_col:
-                    # Vertical separation for action elements
                     st.write("")
                     st.write("")
                     # Unique key binding for dynamic delete loops
