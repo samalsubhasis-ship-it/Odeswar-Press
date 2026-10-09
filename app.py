@@ -122,13 +122,13 @@ with tab1:
 
         # Customizable Dropdown List
         category_options = [
-            "General Customer",
-            "VIP/Premium",
-            "Wholesale/Corporate",
-            "Inbound Lead",
-            "Inactive",
+            "Banner",
+            "Photo Fram",
+            "Cup/TShirt/Cap",
+            "ID/Visit Card",
+            "Light Board",
         ]
-        category = st.selectbox("Customer Segment", options=category_options)
+        category = st.selectbox("Sale Item Type", options=category_options)
 
         notes = st.text_area(
             "Internal Notes", placeholder="Additional context..."
