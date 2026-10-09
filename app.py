@@ -235,7 +235,7 @@ with main_content_col:
 
         #records = get_all_customers(search_input)
 
-        #if not records:
+        if not records:
             if search_input:
                 st.warning(f"No records found matching: '{search_input}'")
             else:
