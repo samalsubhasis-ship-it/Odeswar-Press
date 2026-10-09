@@ -62,7 +62,7 @@ init_db()
 # ==========================================
 st.set_page_config(page_title="Customer Database Entry", layout="wide")
 
-st.title("👥 Customer Database Entry Portal")
+st.title("👥 ODESWAR PRESS")
 st.markdown("Enter customer details below to save them directly to the database.")
 
 # Create two columns layout: left for data entry, right for viewing records
