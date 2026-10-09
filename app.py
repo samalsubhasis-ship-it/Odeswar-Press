@@ -240,7 +240,7 @@ with main_content_col:
                 st.warning(f"No records found matching: '{search_input}'")
             else:
                 st.info("No records found in the database yet.")
-        else:
+    else:
             formatted_data = [
                 {
                     "ID": row,
