@@ -233,7 +233,7 @@ with main_content_col:
             placeholder="Type a name, email, category, or keyword and press enter...",
         )
 
-        records = get_all_customers(search_input)
+        #records = get_all_customers(search_input)
 
         if not records:
             if search_input:
