@@ -139,7 +139,7 @@ with tab1:
 
             
             # Dynamically display manual text input box if "Other" is chosen
-            if category_selection == "Other":
+          if category_selection == "Other":
                 final_category = st.text_input("Specify Other Category*", placeholder="Enter manual category type...")
             else:
                 final_category = category_selection
