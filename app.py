@@ -123,18 +123,18 @@ with tab1:
             phone = st.text_input("Phone Number", placeholder="+1 (555) 019-2834")
 
         with col2:
-    # Added "Other" to the Customer Category dropdown selection
-    category_selection = st.selectbox(
-        "Customer Category",
-        ["VIP", "Regular", "Lead", "Inactive", "Other"],
-        index=1,
+              # Added "Other" to the Customer Category dropdown selection
+           category_selection = st.selectbox(
+               "Customer Category",
+               ["VIP", "Regular", "Lead", "Inactive", "Other"],
+               index=1,
     ) # <--- Added missing closing parenthesis
 
     # Added "Other" to the Sales Item dropdown selection
-    item_selection = st.selectbox(
-        "Sales Item",
-        ["Banner", "Cup/Cap/Tshirt", "Photo", "ID-Card", "Other"],
-        index=1,
+           item_selection = st.selectbox(
+             "Sales Item",
+             ["Banner", "Cup/Cap/Tshirt", "Photo", "ID-Card", "Other"],
+             index=1,
     ) # Changed variable name to avoid overwriting
 
             
