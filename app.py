@@ -128,6 +128,11 @@ with tab1:
                 "Customer Category",
                 ["VIP", "Regular", "Lead", "Inactive", "Other"],
                 index=1,
+        # Added "Other" to the Customer Category dropdown selection
+            category_selection = st.selectbox(
+                "Sales Item",
+                ["Banner", "Cup/Cap/Tshirt", "Photo", "ID-Card", "Other"],
+                index=1,
             )
             
             # Dynamically display manual text input box if "Other" is chosen
