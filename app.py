@@ -123,24 +123,22 @@ with tab1:
             phone = st.text_input("Phone Number", placeholder="+1 (555) 019-2834")
 
         with col2:
-              # Added "Other" to the Customer Category dropdown selection
            category_selection = st.selectbox(
-               "Customer Category",
-               ["VIP", "Regular", "Lead", "Inactive", "Other"],
-               index=1,
-    ) # <--- Added missing closing parenthesis
+              "Customer Category",
+              ["VIP", "Regular", "Lead", "Inactive", "Other"],
+              index=1,
+    )
 
-    # Added "Other" to the Sales Item dropdown selection
            item_selection = st.selectbox(
-             "Sales Item",
-             ["Banner", "Cup/Cap/Tshirt", "Photo", "ID-Card", "Other"],
-             index=1,
-    ) # Changed variable name to avoid overwriting
+              "Sales Item",
+              ["Banner", "Cup/Cap/Tshirt", "Photo", "ID-Card", "Other"],
+              index=1,
+    )
 
-            
-            # Dynamically display manual text input box if "Other" is chosen
-          if category_selection == "Other":
-                final_category = st.text_input("Specify Other Category*", placeholder="Enter manual category type...")
+    # Line 142: Align this perfectly with the code above
+    if category_selection == "Other":
+        custom_category = st.text_input("Please specify customer category:")
+
             else:
                 final_category = category_selection
 
