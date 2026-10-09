@@ -16,6 +16,14 @@ DB_URL = st.secrets.get(
     ),
 )
 
+import streamlit as st
+
+# Automatically securely initializes connections using the dashboard secrets
+conn = st.connection("postgresql", type="sql")
+
+# Perform your queries safely
+df = conn.query("SELECT * FROM your_table_name;", ttl="10m")
+
 
 def get_connection():
     """Establishes a connection to the PostgreSQL database."""
