@@ -91,7 +91,7 @@ st.set_page_config(page_title="Customer Database Entry", layout="wide")
 col_title, col_clock = st.columns([2, 1])
 
 with col_title:
-    st.title("👥 Customer Database Portal")
+    st.title("👥 Odeswar Press Customer-DB")
     st.caption("Service Since 2016")
 
 with col_clock:
