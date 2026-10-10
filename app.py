@@ -16,38 +16,53 @@ def init_db():
         """
         CREATE TABLE IF NOT EXISTS customers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id TEXT UNIQUE,
             name TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
+            email TEXT NOT NULL,
             phone TEXT,
             category TEXT,
+            item TEXT,
+            delivery_status TEXT,
             notes TEXT
         )
     """
     )
-    # Ensure category column exists in the database schema
+    
+    # Ensure all columns exist in the database schema dynamically
     cursor.execute("PRAGMA table_info(customers)")
     columns = [col[1] for col in cursor.fetchall()]
-    if "category" not in columns:
-        cursor.execute("ALTER TABLE customers ADD COLUMN category TEXT")
+    
+    upgrades = {
+        "order_id": "ALTER TABLE customers ADD COLUMN order_id TEXT",
+        "category": "ALTER TABLE customers ADD COLUMN category TEXT",
+        "item": "ALTER TABLE customers ADD COLUMN item TEXT",
+        "delivery_status": "ALTER TABLE customers ADD COLUMN delivery_status TEXT"
+    }
+    
+    for col_name, alter_query in upgrades.items():
+        if col_name not in columns:
+            cursor.execute(alter_query)
 
     conn.commit()
     conn.close()
 
 
-def add_customer(name, email, phone, category, notes):
-    """Inserts a new customer record into the database."""
+def add_customer(order_id, name, email, phone, category, item, delivery_status, notes):
+    """Inserts a new customer order record into the database."""
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO customers (name, email, phone, category, notes) VALUES (?, ?, ?, ?, ?)",
-            (name, email, phone, category, notes),
+            """INSERT INTO customers 
+               (order_id, name, email, phone, category, item, delivery_status, notes) 
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (order_id, name, email, phone, category, item, delivery_status, notes),
         )
         conn.commit()
         conn.close()
-        return True, "Customer successfully added!"
+        return True, "Order successfully created!"
     except sqlite3.IntegrityError:
-        return False, "Error: A customer with this email already exists."
+        return False, "Error: This Order ID already exists."
     except Exception as e:
         return False, f"Error: {str(e)}"
 
@@ -59,23 +74,19 @@ def get_all_customers(search_query=""):
 
     if search_query:
         query = """
-            SELECT id, name, email, phone, category, notes FROM customers 
-            WHERE name LIKE ? OR email LIKE ? OR phone LIKE ? OR category LIKE ? OR notes LIKE ?
+            SELECT id, order_id, name, email, phone, category, item, delivery_status, notes FROM customers 
+            WHERE order_id LIKE ? OR name LIKE ? OR email LIKE ? OR phone LIKE ? 
+               OR category LIKE ? OR item LIKE ? OR delivery_status LIKE ? OR notes LIKE ?
         """
         search_pattern = f"%{search_query}%"
         cursor.execute(
             query,
-            (
-                search_pattern,
-                search_pattern,
-                search_pattern,
-                search_pattern,
-                search_pattern,
-            ),
+            (search_pattern, search_pattern, search_pattern, search_pattern,
+             search_pattern, search_pattern, search_pattern, search_pattern),
         )
     else:
         cursor.execute(
-            "SELECT id, name, email, phone, category, notes FROM customers"
+            "SELECT id, order_id, name, email, phone, category, item, delivery_status, notes FROM customers"
         )
 
     rows = cursor.fetchall()
@@ -84,14 +95,14 @@ def get_all_customers(search_query=""):
 
 
 def delete_customer(customer_id):
-    """Deletes a customer record based on the ID."""
+    """Deletes an order record based on the ID."""
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("DELETE FROM customers WHERE id = ?", (customer_id,))
         conn.commit()
         conn.close()
-        return True, "Customer successfully deleted!"
+        return True, "Record successfully deleted!"
     except Exception as e:
         return False, f"Error: {str(e)}"
 
@@ -99,24 +110,28 @@ def delete_customer(customer_id):
 # ==========================================
 # 2. STREAMLIT INTERFACE
 # ==========================================
-# Initialize the database on application start
+# Initialize database structural checks
 init_db()
 
-st.set_page_config(page_title="Customer Directory Management", layout="wide")
-st.title("👥 Odeswar Press Customer-DB")
+st.set_page_config(page_title="Customer Order Management", layout="wide")
+st.title("👥 Odeswar Press Customer & Order DB")
 
 # Creating layout tabs
-tab1, tab2 = st.tabs(["➕ Add New Customer", "🔍 View & Search Directory"])
+tab1, tab2 = st.tabs(["➕ Create New Order", "🔍 View & Search Directory"])
 
-# --- TAB 1: ADD NEW CUSTOMER ---
+# --- TAB 1: ADD NEW ORDER ---
 with tab1:
-    st.header("Register a New Customer")
+    st.header("Register a New Order")
 
-    # Dynamic visibility container
+    # Generate an automated unique Order ID based on the current timestamp
+    auto_order_id = datetime.now().strftime("ORD-%Y%m%d-%H%M%S")
+
     with st.container(border=True):
         col1, col2 = st.columns(2)
 
         with col1:
+            # Displayed as disabled so users know it is auto-managed
+            order_id = st.text_input("Order ID (Auto-Generated)", value=auto_order_id, disabled=True)
             name = st.text_input("Full Name*", placeholder="John Doe")
             email = st.text_input("Email Address*", placeholder="john@example.com")
             phone = st.text_input("Phone Number", placeholder="+1 (555) 019-2834")
@@ -133,19 +148,24 @@ with tab1:
                 ["Banner", "Cup/Cap/Tshirt", "Photo", "ID-Card", "Other"],
                 index=1,
             )
+            
+            status_selection = st.selectbox(
+                "Delivery Status",
+                ["ordered", "in-progress", "pending", "delivered", "received", "payment issue", "completed"],
+                index=0,
+            )
 
-            # Clean conditional input logic inside col2
             if category_selection == "Other":
                 final_category = st.text_input("Please specify customer category:")
             else:
                 final_category = category_selection
 
             notes = st.text_area(
-                "Internal Account Notes",
-                placeholder="Enter background details, preferences, or transaction history...",
+                "Internal Account & Order Notes",
+                placeholder="Enter item sizes, text details, or billing statuses...",
             )
 
-        submit_btn = st.button("Add Customer", type="primary")
+        submit_btn = st.button("Submit Order", type="primary")
 
         if submit_btn:
             if not name or not email:
@@ -153,7 +173,9 @@ with tab1:
             elif category_selection == "Other" and (not final_category or not final_category.strip()):
                 st.error("Please enter a manual category name.")
             else:
-                success, message = add_customer(name, email, phone, final_category, notes)
+                success, message = add_customer(
+                    order_id, name, email, phone, final_category, item_selection, status_selection, notes
+                )
                 if success:
                     st.success(message)
                     st.rerun()
@@ -164,41 +186,48 @@ with tab1:
 with tab2:
     st.header("Search and Explore Records")
 
-    # Search Bar Interface
     search_input = st.text_input(
-        "Search records by Name, Email, Phone, Category, or Notes",
+        "Search records by Order ID, Name, Email, Phone, Category, Item, or Status",
         placeholder="Type to filter...",
     )
 
-    # Fetch records based on search query
     customers = get_all_customers(search_input)
 
     if not customers:
-        st.info("No matching customer records found.")
+        st.info("No matching customer or order records found.")
     else:
-        # Dynamically generate list layout with metrics and delete options
         for row in customers:
-            c_id, c_name, c_email, c_phone, c_category, c_notes = row
+            c_id, c_oid, c_name, c_email, c_phone, c_category, c_item, c_status, c_notes = row
 
-            # Design a clean card layout for each entry
             with st.container(border=True):
                 info_col, action_col = st.columns([4, 1])
 
                 with info_col:
-                    # Category Badge styling support mapping
-                    badge_color = {
+                    category_badge = {
                         "VIP": "🔴 VIP",
                         "Regular": "🟢 Regular",
                         "Lead": "🔵 Lead",
                         "Inactive": "⚪ Inactive",
-                    }.get(c_category, f"🟠 {c_category}") # Fallback for custom manual categories
+                    }.get(c_category, f"🟠 {c_category}")
 
-                    st.markdown(f"### {c_name} | {badge_color}")
+                    # Status color coding system
+                    status_badge = {
+                        "ordered": "📦 ordered",
+                        "in-progress": "⚡ in-progress",
+                        "pending": "⏳ pending",
+                        "delivered": "🚚 delivered",
+                        "received": "🤝 received",
+                        "payment issue": "⚠️ payment issue",
+                        "completed": "✅ completed"
+                    }.get(c_status, c_status)
 
-                    # Detailed contact alignment
-                    det_col1, det_col2 = st.columns(2)
+                    st.markdown(f"### {c_name} | {category_badge} | `{c_oid}`")
+
+                    det_col1, det_col2, det_col3, det_col4 = st.columns(4)
                     det_col1.markdown(f"**📧 Email:** {c_email}")
                     det_col2.markdown(f"**📞 Phone:** {c_phone if c_phone else 'N/A'}")
+                    det_col3.markdown(f"**🛍️ Product:** `{c_item}`")
+                    det_col4.markdown(f"**📊 Status:** {status_badge}")
 
                     if c_notes:
                         st.markdown(f"**📝 Notes:** {c_notes}")
@@ -206,10 +235,7 @@ with tab2:
                 with action_col:
                     st.write("")
                     st.write("")
-                    # Unique key binding for dynamic delete loops
-                    if st.button(
-                        "Delete Record", key=f"del_{c_id}", type="primary"
-                    ):
+                    if st.button("Delete Order", key=f"del_{c_id}", type="primary"):
                         success, message = delete_customer(c_id)
                         if success:
                             st.success(message)
