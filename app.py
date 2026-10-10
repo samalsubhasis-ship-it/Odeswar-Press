@@ -151,7 +151,7 @@ with tab1:
             
             status_selection = st.selectbox(
                 "Delivery Status",
-                ["ordered", "In-progress", "Pending", "Delivered", "Received", "Payment Issue", "Completed"],
+                ["Ordered", "In-progress", "Pending", "Delivered", "Received", "Payment Issue", "Completed"],
                 index=0,
             )
 
